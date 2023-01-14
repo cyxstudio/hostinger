@@ -1,0 +1,440 @@
+<html>
+    <head>
+        <title>Bookmarks</title>
+        <script src="./dependencies/jquery.min.js"></script>
+        <link rel="stylesheet" href="style.css">
+        <script>
+            function openCity(evt, cityName) {
+                // Declare all variables
+                var i, tabcontent, tablinks;
+
+                // Get all elements with class="tabcontent" and hide them
+                tabcontent = document.getElementsByClassName("tabcontent");
+                for (i = 0; i < tabcontent.length; i++) {
+                    tabcontent[i].style.display = "none";
+                }
+
+                // Get all elements with class="tablinks" and remove the class "active"
+                tablinks = document.getElementsByClassName("tablinks");
+                for (i = 0; i < tablinks.length; i++) {
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }
+
+                // Show the current tab, and add an "active" class to the button that opened the tab
+                document.getElementById(cityName).style.display = "block";
+                evt.currentTarget.className += " active";
+            }
+        </script>
+    </head>
+    <body>
+        <h2>Bookmarks</h2>
+
+        <!----------------------------------------------------------------------------------MODAL--------------------------------------------------------->
+        <!-- Trigger/Open The Modal -->
+        <button id="myBtn">Open Modal</button>
+
+        <!-- The Modal -->
+        <div id="myModal" class="modal">
+
+            <!-- Modal content -->
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                
+                <h3>Add new bookmark</h3>
+                <div>
+                    <label for="name">Name</label>
+                    <input type="text" id="name" />
+                </div>
+                <div>
+                    <label for="url">URL</label>
+                    <input type="text" id="url" value="https://" />
+                </div>
+                <div>
+                    <label for="description">Description</label>
+                    <textarea id="description"></textarea>
+                </div>
+                <div>
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" />
+                </div>
+                <input type="hidden" id="modal_id" value="" />
+                <div>
+                    <button id="submit_new">Add</button>
+                </div>
+
+            </div>
+
+        </div>
+        <!----------------------------------------------------------------------------------END OF MODAL--------------------------------------------------------->
+        <!----------------------------------------------------------------------------------TABBING--------------------------------------------------------->
+        <!-- Tab links -->
+        <div class="tab">
+            <button class="tablinks" onclick="openCity(event, 'chrome-tab')">Chrome</button>
+            <button class="tablinks" onclick="openCity(event, 'brave-tab')">Brave</button>
+            <button class="tablinks active" onclick="openCity(event, 'bookmark-tab')">Bookmark</button>
+        </div>
+        <!-- Tab content -->
+        <div id="chrome-tab" class="tabcontent">
+            <h3>Chrome</h3>
+            <p id="chrome-tab"></p>
+        </div>
+        
+        <div id="brave-tab" class="tabcontent">
+            <h3>Brave</h3>
+            <p></p>
+        </div>
+        
+        <div id="bookmark-tab" class="tabcontent" style="display: block;">
+            <h3>Bookmark</h3>
+            <button id="loadAll">Load</button>
+            <h4>Tags</h4>
+            <div id="tags-container"></div>
+            <div id="bookmark-container">
+
+            </div>
+        </div>
+        <!----------------------------------------------------------------------------------END OF TABBING--------------------------------------------------------->
+
+        <script type="module">
+            import { chromeBookmarks } from "./browsers/chrome.js";
+            import { braveBookmarks } from "./browsers/brave.js";
+            var allURL = [] //all data from chrome
+            var dbData = new Array();  // all data from database
+            var allTags = new Set() // all tags from bookmarks from database
+            var depth = 0
+            var addNew = true; //whether modal is for add new bookmark or for edit current bookmark
+            // for (let i=0; i < chromeBookmarks.length; i++) {  //unpackage bookmarks from chrome
+            //     recur(chromeBookmarks[i])
+            // }
+
+            // function recur(data) {
+            //     if (data.type == "folder") {
+            //         if (data.children.length > 0) {
+            //             for (let o = 0; o < data.children.length ; o ++) {
+            //                 recur(data.children[o])
+            //             }
+            //         }
+            //     } else {
+            //         //console.log(data)
+            //         allURL.push(data)
+            //     }
+            // }
+            
+            for (let i = 0; i < chromeBookmarks.length ; i ++) {
+                printData(chromeBookmarks[i], depth, document.getElementById("chrome-tab"))
+            }
+
+            for (let i = 0; i < braveBookmarks.length ; i ++) {
+                printData(braveBookmarks[i], depth, document.getElementById("brave-tab"))
+            }
+        
+            function printData(item, depth, lastItem) {
+                if (item.type == "folder") {
+
+                    let indent = ""
+                    for (let o= 0; o < depth ; o ++) {
+                        indent += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    }
+
+                    const parentEle = document.createElement("div")
+                    parentEle.className  = "flip"
+                    parentEle.innerHTML = `
+                        <div>
+                            ${indent} <img src="images/folder.png" class="icon" />  ${item.name}
+                        </div>
+                    `
+                    const childEle = document.createElement("div")
+                    childEle.className  = "panel"
+                    lastItem.appendChild(parentEle)
+                    lastItem.appendChild(childEle)
+
+                    if (item.children.length > 0) {
+                        depth += 1
+                        for (let o = 0; o < item.children.length ; o ++) {
+                            printData(item.children[o], depth, childEle)
+                        }
+                    } else {
+
+                    }
+                } else {
+
+                    let indent = ""
+                    for (let o= 0; o < depth ; o ++) {
+                        indent += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
+                    }
+                    const bookmarkEle = document.createElement("div")
+                    bookmarkEle.innerHTML = `
+                        <div class="bookmark-container">
+                            ${indent} 
+                            <img src="images/bookmark.png" class="icon" /> 
+                            <div class="flex-box-column">
+                                <a href="${item.url}" target="_blank">
+                                    <div class="flex"> 
+                                        ${item.name}
+                                    </div>
+                                    <div  class="flex">
+                                        ${item.url}
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    `
+                    depth = 0
+                    lastItem.appendChild(bookmarkEle);
+
+                }
+
+            }
+
+            function deleteBookmark(id) {
+                $.post({url : "actions/deleteBookmark.php", 
+                data : {
+                    id: id
+                },
+                success:function(data, status){
+                    if (data == "success") {
+                        document.getElementById("bookmark-container").innerHTML = "";
+                        init()
+                    }
+                }, async: false});
+            }
+            
+            function getData(tag="") {
+                $.get({url : "actions/getData.php?tag=" + tag, success:function(data, status){
+                    if (data) {
+                        dbData = JSON.parse(data);
+                        console.log(data)
+                        let bookmarkContainer = document.getElementById("bookmark-container")
+                        document.getElementById("bookmark-container").innerHTML = "";
+                        for (let i=0; i < dbData.length; i++) {
+                            let tagSplit = dbData[i].tags.split(",")
+                            for (let o=0; o < tagSplit.length; o++) {
+                                allTags.add(tagSplit[o].trim())
+                            }
+                            bookmarkContainer.innerHTML += `
+                                <div class="bookmark" data-attribute=${dbData[i].id}>
+                                    <img src="images/bookmark.png" class="icon" /> 
+                                    <div class="flex-box-column">
+                                        <a href="${dbData[i].url}" target="_blank">
+                                            <div class="flex"> 
+                                                ${dbData[i].name}
+                                            </div>
+                                            <div  class="flex">
+                                                ${dbData[i].url}
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div class="flex-box-column">
+                                        ${dbData[i].description}
+                                    </div>
+                                    <div class="flex-box-column">
+                                        ${dbData[i].tags}
+                                    </div>
+                                    <div class="edit button" data-attribute=${dbData[i].id} data-url="${dbData[i].url}" data-name="${dbData[i].name}" data-description="${dbData[i].description}" data-tags="${dbData[i].tags}">
+                                        edit
+                                    </div>
+                                    <div class="delete button" data-attribute=${dbData[i].id}>
+                                        X
+                                    </div>
+                                </div>
+                            `
+                        }
+                    }
+                }, async: false});
+            }
+
+            function init() {
+                getData()
+
+                // assign delete function to delete button
+                let deleteBtn = document.getElementsByClassName("delete")
+                for (let i=0; i < deleteBtn.length ; i++) {
+                    deleteBtn[i].addEventListener("click", ()=>{
+                        console.log(deleteBtn[i].getAttribute("data-attribute"))
+                        deleteBookmark(deleteBtn[i].getAttribute("data-attribute"))
+                    })
+                }
+
+                let editBtn = document.getElementsByClassName("edit")
+                for (let i=0; i < editBtn.length ; i++) {
+                    editBtn[i].addEventListener("click", function(){
+                        addNew = false
+                        let name = this.getAttribute("data-name")
+                        let url = this.getAttribute("data-url")
+                        let desc = this.getAttribute("data-description")
+                        let tags = this.getAttribute("data-tags")
+                        let id = this.getAttribute("data-attribute")
+                        $('#name').val(name);
+                        $('#url').val(url);
+                        $('#description').val(desc)
+                        $('#tags').val(tags);
+                        $('#modal_id').val(id);
+                        document.getElementById("myModal").style.display = "block";
+                    })
+                }
+
+                //fill up the tags
+                console.log("allTags", allTags)
+                const tagsContainer = document.getElementById("tags-container")
+                tagsContainer.innerHTML = ""
+                allTags.forEach((item)=>{
+                    console.log(item)
+                    tagsContainer.innerHTML += `<div class="tag-btn">${item}</div>`
+                })
+
+                let tagBtn = document.getElementsByClassName("tag-btn")
+                for (let i=0; i < tagBtn.length ; i++) {
+                    tagBtn[i].addEventListener("click", ()=>{
+                        console.log(tagBtn[i].innerText)
+                        getData(tagBtn[i].innerText)
+                    })
+                }
+            }
+            
+            document.getElementById("loadAll").addEventListener("click", function(){
+                getData()
+            })
+
+            
+            $(document).ready(function(){
+                init();
+                // document.getElementById("slider").addEventListener("click", function(){
+                //     console.log($("#chrome-script").attr('class'))
+                //     if ($("#chrome-script").attr('class') == "height30") {
+                //         $("#chrome-script").removeClass("height30");
+                //         $("#chrome-script").addClass("height450");
+                //     } else {
+                //         $("#chrome-script").removeClass("height450");
+                //         $("#chrome-script").addClass("height30");
+                //     }
+                // })
+                console.log(allURL)
+                console.log(dbData)
+
+                // allURL.forEach((item)=>{
+                //     let matched = false
+                //     for (let i=0; i < dbData.length; i++) {
+                //         if (item.url == dbData[i].url) {
+                //             console.log(item)
+                //             matched = true
+                //             break
+                //         }
+                //     }
+                //     if (!matched) {
+                //         document.getElementById("chrome-tab").innerHTML += `<div class="bookmark">
+                //                     <img src="images/bookmark.png" class="icon" /> 
+                //                     <div class="flex-box-column">
+                //                         <div class="flex"> 
+                //                             ${item.name}
+                //                         </div>
+                //                         <div  class="flex">
+                //                             ${item.url}
+                //                         </div>
+                //                     </div>
+                //                 </div>`
+                //     }
+                // })
+                
+                // Get the modal
+                var modal = document.getElementById("myModal");
+
+                // Get the button that opens the modal
+                var btn = document.getElementById("myBtn");
+
+                // Get the <span> element that closes the modal
+                var span = document.getElementsByClassName("close")[0];
+
+                // When the user clicks on the button, open the modal
+                btn.onclick = function() {
+                    addNew = true
+                    $('#name').val("");
+                    $('#url').val("");
+                    $('#description').val("")
+                    $('#tags').val("");
+                    $('#modal_id').val("");
+                    modal.style.display = "block";
+                }
+
+                // When the user clicks on <span> (x), close the modal
+                span.onclick = function() {
+                    modal.style.display = "none";
+                }
+
+                // When the user clicks anywhere outside of the modal, close it
+                window.onclick = function(event) {
+                    if (event.target == modal) {
+                        modal.style.display = "none";
+                    }
+                }
+
+                $('.flip').click(function(e) {
+                    $(this).next().slideToggle('slow');
+                });  
+
+
+            })
+
+            document.getElementById("submit_new").addEventListener("click", function(){
+                console.log(addNew)
+                if (addNew) {
+                    addNewBookmark()
+                } else {
+                    editBookmark()
+                }
+                
+            })
+
+            function addNewBookmark() {
+                console.log($('#name').val(), $('#url').val(), $('#description').val())
+                
+                $.post({url : "actions/createBookmark.php", 
+                data : {
+                    name: $('#name').val(),
+                    url: $('#url').val(),
+                    description : $('#description').val(),
+                    tags : $('#tags').val().replace(/ /g, "")
+                },
+                success:function(data, status){
+                    if (data) {
+                        document.getElementById("bookmark-container").innerHTML = "";
+                        document.getElementById("myModal").style.display = "none";
+                        $('#name').val("");
+                        $('#url').val("");
+                        $('#description').val("")
+                        $('#tags').val("");
+                        $('#modal_id').val("");
+                        init();
+                    }
+                }, async: false});
+            }
+
+            function editBookmark() {
+                console.log($('#name').val(), $('#url').val(), $('#description').val())
+                
+                $.post({url : "actions/editBookmark.php", 
+                data : {
+                    name: $('#name').val(),
+                    url: $('#url').val(),
+                    description : $('#description').val(),
+                    tags : $('#tags').val().replace(/ /g, ""),
+                    id: $('#modal_id').val(),
+                },
+                success:function(data, status){
+                    if (data) {
+                        document.getElementById("bookmark-container").innerHTML = "";
+                        document.getElementById("myModal").style.display = "none";
+                        $('#name').val("");
+                        $('#url').val("");
+                        $('#description').val("")
+                        $('#tags').val("");
+                        $('#modal_id').val("");
+                        init();
+                    }
+                }, async: false});
+            }
+        </script>
+
+
+        </div>
+    </body>
+</html>
